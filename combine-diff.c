@@ -1261,7 +1261,7 @@ static struct diff_filepair *combined_pair(struct combine_diff_path *p,
 	struct diff_filepair *pair;
 	struct diff_filespec *pool;
 
-	pair = xmalloc(sizeof(*pair));
+	pair = xcalloc(1, sizeof(*pair));
 	pool = xcalloc(st_add(num_parent, 1), sizeof(struct diff_filespec));
 	pair->one = pool + 1;
 	pair->two = pool;
