@@ -218,7 +218,7 @@ int within_depth(const char *name, int namelen,
 		if (depth > max_depth)
 			return 0;
 	}
-	return 1;
+	return depth <= max_depth;
 }
 
 #define DO_MATCH_EXCLUDE   (1<<0)
