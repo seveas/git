@@ -93,6 +93,9 @@ int run_diff_files(struct rev_info *revs, unsigned int option)
 	unsigned ce_option = ((option & DIFF_RACY_IS_MODIFIED)
 			      ? CE_MATCH_RACY_IS_DIRTY : 0);
 
+	if (revs->diffopt.max_depth_valid)
+		die("max-depth is not supported for worktree diffs");
+
 	diff_set_mnemonic_prefix(&revs->diffopt, "i/", "w/");
 
 	if (diff_unmerged_stage < 0)
@@ -504,6 +507,8 @@ static int diff_cache(struct rev_info *revs,
 	opts.dst_index = NULL;
 	opts.pathspec = &revs->diffopt.pathspec;
 	opts.pathspec->recursive = 1;
+	if (revs->diffopt.max_depth_valid)
+		die("max-depth is not supported for index diffs");
 
 	init_tree_desc(&t, tree->buffer, tree->size);
 	return unpack_trees(1, &t, &opts);
