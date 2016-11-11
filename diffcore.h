@@ -47,6 +47,7 @@ struct diff_filespec {
 	unsigned has_more_entries : 1; /* only appear in combined diff */
 	/* data should be considered "binary"; -1 means "don't know yet" */
 	signed int is_binary : 2;
+	unsigned int dereference : 1; /* Dereference symlinks */
 	struct userdiff_driver *driver;
 };
 

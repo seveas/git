@@ -154,4 +154,10 @@ test_expect_success SYMLINKS 'symlinks do not respect userdiff config by path' '
 	test_cmp expect actual
 '
 
+test_expect_success SYMLINKS 'diff does not accept --dereference without --no-index' '
+    ln -s dest link1 &&
+    ln -s dest link2 &&
+	test_must_fail git diff --dereference link1 link2
+'
+
 test_done

@@ -356,6 +356,8 @@ int cmd_diff(int argc, const char **argv, const char *prefix)
 	if (nongit)
 		die(_("Not a git repository"));
 	argc = setup_revisions(argc, argv, &rev, NULL);
+	if (DIFF_OPT_TST(&rev.diffopt, DEREFERENCE))
+		die(_("--dereference can only be used together with --no-index"));
 	if (!rev.diffopt.output_format) {
 		rev.diffopt.output_format = DIFF_FORMAT_PATCH;
 		diff_setup_done(&rev.diffopt);

@@ -127,4 +127,92 @@ test_expect_success 'diff --no-index from repo subdir respects config (implicit)
 	test_cmp expect actual.head
 '
 
+test_expect_success SYMLINKS 'diff --no-index does not follows symlinks' '
+	echo a >1 &&
+	echo b >2 &&
+	ln -s 1 3 &&
+	ln -s 2 4 &&
+	cat >expect <<-EOF &&
+		--- a/3
+		+++ b/4
+		@@ -1 +1 @@
+		-1
+		\ No newline at end of file
+		+2
+		\ No newline at end of file
+	EOF
+	test_expect_code 1 git diff --no-index 3 4 | tail -n +3 >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success SYMLINKS 'diff --no-index --dereference does follows symlinks' '
+	cat >expect <<-EOF &&
+		--- a/3
+		+++ b/4
+		@@ -1 +1 @@
+		-a
+		+b
+	EOF
+	test_expect_code 1 git diff --no-index --dereference 3 4 | tail -n +3 >actual &&
+	test_cmp expect actual
+'
+
+test_expect_success SYMLINKS 'diff --no-index --no-dereference does not follow symlinks' '
+	cat >expect <<-EOF &&
+		--- a/3
+		+++ b/4
+		@@ -1 +1 @@
+		-1
+		\ No newline at end of file
+		+2
+		\ No newline at end of file
+	EOF
+	test_expect_code 1 git diff --no-index --no-dereference 3 4 | tail -n +3 > actual &&
+	test_cmp expect actual
+'
+
+test_expect_success SYMLINKS 'diff --no-index --dereference with symlinks to directories' '
+	cat >expect <<-EOF &&
+		--- a/xx/z
+		+++ b/yy/z
+		@@ -1 +1 @@
+		-x
+		+y
+	EOF
+	mkdir x y &&
+	echo x > x/z &&
+	echo y > y/z &&
+	ln -s x xx &&
+	ln -s y yy &&
+	test_expect_code 1 git diff --no-index --dereference xx yy | tail -n +3 > actual &&
+	test_cmp expect actual
+'
+
+test_expect_success SYMLINKS 'diff --no-index handles symlink loops gracefully' '
+	mkdir x1 &&
+	mkdir x2 &&
+	ln -s . x1/loop &&
+	test_must_fail git diff --no-index --dereference x1 x2
+'
+
+test_expect_success SYMLINKS 'diff --no-index handles multiple symlinks to the same dir' '
+	mkdir y1 &&
+	mkdir y1/z1 &&
+	echo z > y1/z1/zx &&
+	mkdir y2 &&
+	ln -sf z1 y1/z2 &&
+	ln -sd z1 y1/z3 &&
+	test_expect_code 1 git diff --no-index --dereference y1 y2
+'
+
+test_expect_success SYMLINKS 'diff --no-index --dereference handles broken symlinks gracefully' '
+	ln -s /does/not/exist x3 &&
+	mkdir x4 &&
+	ln -s /does/not/exist x4/x5 &&
+	test_must_fail git diff --no-index --dereference x4/x5 x3 &&
+	test_must_fail git diff --no-index --dereference x3 x4/x5 &&
+	test_must_fail git diff --no-index --dereference x4 x3 &&
+	test_must_fail git diff --no-index --dereference x3 x4
+'
+
 test_done

@@ -215,6 +215,15 @@ linkgit:git-config[1]).
 	commit range.  Defaults to `diff.submodule` or the 'short' format
 	if the config option is unset.
 
+ifdef::git-diff[]
+--dereference::
+--no-dereference::
+	Normally, "git diff --no-index" will compare symlinks by comparing what
+	they point to. The `--dereference` option will make it compare the content
+	of the linked files. The `--no-dereference` option disables an earlier
+	`--dereference`.
+endif::git-diff[]
+
 --color[=<when>]::
 	Show colored diff.
 	`--color` (i.e. without '=<when>') is the same as `--color=always`.

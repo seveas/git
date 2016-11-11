@@ -40,7 +40,7 @@ static int read_directory_contents(const char *path, struct string_list *list)
  */
 static const char file_from_standard_input[] = "-";
 
-static int get_mode(const char *path, int *mode)
+static int get_mode(const char *path, int *mode, int dereference)
 {
 	struct stat st;
 
@@ -52,7 +52,7 @@ static int get_mode(const char *path, int *mode)
 #endif
 	else if (path == file_from_standard_input)
 		*mode = create_ce_mode(0666);
-	else if (lstat(path, &st))
+	else if (dereference ? stat(path, &st) : lstat(path, &st))
 		return error("Could not access '%s'", path);
 	else
 		*mode = st.st_mode;
@@ -75,13 +75,14 @@ static int populate_from_stdin(struct diff_filespec *s)
 	return 0;
 }
 
-static struct diff_filespec *noindex_filespec(const char *name, int mode)
+static struct diff_filespec *noindex_filespec(const char *name, int mode, int dereference)
 {
 	struct diff_filespec *s;
 
 	if (!name)
 		name = "/dev/null";
 	s = alloc_filespec(name);
+	s->dereference = dereference;
 	fill_filespec(s, &null_oid, 0, mode);
 	if (name == file_from_standard_input)
 		populate_from_stdin(s);
@@ -89,26 +90,44 @@ static struct diff_filespec *noindex_filespec(const char *name, int mode)
 }
 
 static int queue_diff(struct diff_options *o,
-		      const char *name1, const char *name2)
+		      const char *name1, const char *name2,
+		      struct string_list *visit1, struct string_list *visit2)
 {
-	int mode1 = 0, mode2 = 0;
+	int mode1 = 0, mode2 = 0, dereference = !!DIFF_OPT_TST(o, DEREFERENCE);
+	struct strbuf real_name1 = STRBUF_INIT, real_name2 = STRBUF_INIT;
 
-	if (get_mode(name1, &mode1) || get_mode(name2, &mode2))
+	if (get_mode(name1, &mode1, dereference) ||
+		get_mode(name2, &mode2, dereference))
 		return -1;
+
+	if (dereference) {
+		if (name1 && S_ISDIR(mode1)) {
+			strbuf_realpath(&real_name1, name1, 1);
+			if (string_list_has_string(visit1, real_name1.buf))
+				die(_("Symlink loop detected"));
+			string_list_insert(visit1, real_name1.buf);
+		}
+		if (name2 && S_ISDIR(mode2)) {
+			strbuf_realpath(&real_name2, name2, 1);
+			if (string_list_has_string(visit2, real_name2.buf))
+				die(_("Symlink loop detected"));
+			string_list_insert(visit2, real_name2.buf);
+		}
+	}
 
 	if (mode1 && mode2 && S_ISDIR(mode1) != S_ISDIR(mode2)) {
 		struct diff_filespec *d1, *d2;
 
 		if (S_ISDIR(mode1)) {
 			/* 2 is file that is created */
-			d1 = noindex_filespec(NULL, 0);
-			d2 = noindex_filespec(name2, mode2);
+			d1 = noindex_filespec(NULL, 0, 0);
+			d2 = noindex_filespec(name2, mode2, dereference);
 			name2 = NULL;
 			mode2 = 0;
 		} else {
 			/* 1 is file that is deleted */
-			d1 = noindex_filespec(name1, mode1);
-			d2 = noindex_filespec(NULL, 0);
+			d1 = noindex_filespec(name1, mode1, dereference);
+			d2 = noindex_filespec(NULL, 0, 0);
 			name1 = NULL;
 			mode1 = 0;
 		}
@@ -173,12 +192,19 @@ static int queue_diff(struct diff_options *o,
 				n2 = buffer2.buf;
 			}
 
-			ret = queue_diff(o, n1, n2);
+			ret = queue_diff(o, n1, n2, visit1, visit2);
 		}
 		string_list_clear(&p1, 0);
 		string_list_clear(&p2, 0);
 		strbuf_release(&buffer1);
 		strbuf_release(&buffer2);
+
+		if (dereference) {
+			if(real_name1.len)
+				string_list_remove(visit1, real_name1.buf, 0);
+			if(real_name2.len)
+				string_list_remove(visit1, real_name2.buf, 0);
+		}
 
 		return ret;
 	} else {
@@ -189,8 +215,8 @@ static int queue_diff(struct diff_options *o,
 			SWAP(name1, name2);
 		}
 
-		d1 = noindex_filespec(name1, mode1);
-		d2 = noindex_filespec(name2, mode2);
+		d1 = noindex_filespec(name1, mode1, dereference);
+		d2 = noindex_filespec(name2, mode2, dereference);
 		diff_queue(&diff_queued_diff, d1, d2);
 		return 0;
 	}
@@ -240,6 +266,8 @@ void diff_no_index(struct rev_info *revs,
 	const char *paths[2];
 	struct strbuf replacement = STRBUF_INIT;
 	const char *prefix = revs->prefix;
+	struct string_list visit1 = STRING_LIST_INIT_DUP;
+	struct string_list visit2 = STRING_LIST_INIT_DUP;
 
 	diff_setup(&revs->diffopt);
 	for (i = 1; i < argc - 2; ) {
@@ -287,7 +315,7 @@ void diff_no_index(struct rev_info *revs,
 	setup_diff_pager(&revs->diffopt);
 	DIFF_OPT_SET(&revs->diffopt, EXIT_WITH_STATUS);
 
-	if (queue_diff(&revs->diffopt, paths[0], paths[1]))
+	if (queue_diff(&revs->diffopt, paths[0], paths[1], &visit1, &visit2))
 		exit(1);
 	diff_set_mnemonic_prefix(&revs->diffopt, "1/", "2/");
 	diffcore_std(&revs->diffopt);
