@@ -84,6 +84,15 @@ static struct diff_filespec *noindex_filespec(const char *name, int mode, int de
 	s = alloc_filespec(name);
 	s->dereference = dereference;
 	fill_filespec(s, &null_oid, 0, mode);
+	/*
+	 * In --no-index mode, we support reading from pipes. canon_mode, called by
+	 * fill_filespec, gets confused by this and thinks we now have subprojects.
+	 * To help the rest of the diff machinery along, we now override what
+	 * canon_mode says. This is done here instead of in canon_mode, because the
+	 * rest of git does not (and should not) support pipes.
+	 */
+	if (S_ISFIFO(mode))
+		s->mode = S_IFREG | ce_permissions(mode);
 	if (name == file_from_standard_input)
 		populate_from_stdin(s);
 	return s;

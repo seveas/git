@@ -1189,3 +1189,17 @@ test_lazy_prereq LONG_IS_64BIT '
 
 test_lazy_prereq TIME_IS_64BIT 'test-date is64bit'
 test_lazy_prereq TIME_T_IS_64BIT 'test-date time_t-is64bit'
+
+test_lazy_prereq PROCESS_SUBSTITUTION '
+	case $(uname -s) in
+	MINGW*)
+		# The MinGW/git-for-windows shell actually supports process
+		# substitution just fine, but git cannot read the emulated
+		# /proc as it only understands windows paths
+		false
+		;;
+	*)
+		eval "foo=\$(cat <(echo test))" 2>/dev/null && test "$foo" = test
+		;;
+	esac
+'

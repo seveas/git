@@ -215,4 +215,14 @@ test_expect_success SYMLINKS 'diff --no-index --dereference handles broken symli
 	test_must_fail git diff --no-index --dereference x3 x4
 '
 
+test_expect_success PROCESS_SUBSTITUTION 'diff --no-index works on fifos' '
+	cat >expect <<-EOF &&
+		@@ -1 +1 @@
+		-1
+		+2
+	EOF
+	test_expect_code 1 git diff --no-index --dereference <(echo 1) <(echo 2) | tail -n +5 > actual &&
+	test_cmp expect actual
+'
+
 test_done
