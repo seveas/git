@@ -2839,9 +2839,18 @@ int diff_populate_filespec(struct diff_filespec *s, unsigned int flags)
 		fd = open(s->path, O_RDONLY);
 		if (fd < 0)
 			goto err_empty;
-		s->data = xmmap(NULL, s->size, PROT_READ, MAP_PRIVATE, fd, 0);
+		if (!S_ISREG(st.st_mode)) {
+			struct strbuf sb = STRBUF_INIT;
+			strbuf_read(&sb, fd, 0);
+			s->size = sb.len;
+			s->data = strbuf_detach(&sb, NULL);
+			s->should_free = 1;
+		}
+		else {
+			s->data = xmmap(NULL, s->size, PROT_READ, MAP_PRIVATE, fd, 0);
+			s->should_munmap = 1;
+		}
 		close(fd);
-		s->should_munmap = 1;
 
 		/*
 		 * Convert from working tree format to canonical git format

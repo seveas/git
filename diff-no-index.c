@@ -83,6 +83,14 @@ static struct diff_filespec *noindex_filespec(const char *name, int mode)
 		name = "/dev/null";
 	s = alloc_filespec(name);
 	fill_filespec(s, null_sha1, 0, mode);
+	/*
+	 * In --no-index mode, we support reading from pipes. canon_mode, called by
+	 * fill_filespec, gets confused by this and thinks we now have subprojects.
+	 * Detect this and tell the rest of the diff machinery to treat pipes as
+	 * normal files.
+	 */
+	if (S_ISGITLINK(s->mode))
+		s->mode = S_IFREG | ce_permissions(mode);
 	if (name == file_from_standard_input)
 		populate_from_stdin(s);
 	return s;
