@@ -52,7 +52,7 @@ static int get_mode(const char *path, int *mode)
 #endif
 	else if (path == file_from_standard_input)
 		*mode = create_ce_mode(0666);
-	else if (lstat(path, &st))
+	else if (stat(path, &st))
 		return error("Could not access '%s'", path);
 	else
 		*mode = st.st_mode;

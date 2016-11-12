@@ -2815,7 +2815,7 @@ int diff_populate_filespec(struct diff_filespec *s, unsigned int flags)
 		s->size = xsize_t(st.st_size);
 		if (!s->size)
 			goto empty;
-		if (S_ISLNK(st.st_mode)) {
+		if (S_ISLNK(s->mode)) {
 			struct strbuf sb = STRBUF_INIT;
 
 			if (strbuf_readlink(&sb, s->path, s->size))
@@ -2824,6 +2824,10 @@ int diff_populate_filespec(struct diff_filespec *s, unsigned int flags)
 			s->data = strbuf_detach(&sb, NULL);
 			s->should_free = 1;
 			return 0;
+		}
+		if (S_ISLNK(st.st_mode)) {
+			stat(s->path, &st);
+			s->size = xsize_t(st.st_size);
 		}
 		if (size_only)
 			return 0;
