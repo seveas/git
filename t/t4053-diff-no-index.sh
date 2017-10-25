@@ -221,7 +221,7 @@ test_expect_success PROCESS_SUBSTITUTION 'diff --no-index works on fifos' '
 		-1
 		+2
 	EOF
-	test_expect_code 1 git diff --no-index --dereference <(echo 1) <(echo 2) | tail -n +5 > actual &&
+	test_expect_code 1 git diff --no-index <(echo 1) <(echo 2) | tail -n +5 > actual &&
 	test_cmp expect actual
 '
 

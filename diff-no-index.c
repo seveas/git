@@ -305,6 +305,8 @@ void diff_no_index(struct rev_info *revs,
 		else if (prefix)
 			p = prefix_filename(prefix, p);
 		paths[i] = p;
+		if(starts_with(p, "/dev/fd/"))
+			DIFF_OPT_SET(&revs->diffopt, DEREFERENCE);
 	}
 
 	fixup_paths(paths, &replacement);
