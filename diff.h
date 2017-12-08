@@ -206,6 +206,15 @@ struct diff_options {
 	} color_moved;
 	#define COLOR_MOVED_DEFAULT COLOR_MOVED_ZEBRA
 	#define COLOR_MOVED_MIN_ALNUM_COUNT 20
+
+	/*
+	 * The extra "valid" flag is a slight hack. The value "0" is perfectly
+	 * valid for max-depth. We would normally use -1 to indicate "not set",
+	 * but there are many code paths which assume that assume that just
+	 * zero-ing out a diff_options is enough to initialize it.
+	 */
+	int max_depth;
+	int max_depth_valid;
 };
 
 void diff_emit_submodule_del(struct diff_options *o, const char *line);

@@ -4212,6 +4212,9 @@ void diff_setup_done(struct diff_options *options)
 
 	if (!options->use_color || external_diff())
 		options->color_moved = 0;
+
+	if (options->pathspec.has_wildcard && options->max_depth_valid)
+		die("max-depth cannot be used with wildcard pathspecs");
 }
 
 static int opt_arg(const char *arg, int arg_short, const char *arg_long, int *val)
@@ -4788,6 +4791,10 @@ int diff_opt_parse(struct diff_options *options,
 			options->use_color = GIT_COLOR_NEVER;
 		free(path);
 		return argcount;
+	} else if ((argcount = parse_long_opt("max-depth", av, &optarg))) {
+		options->flags.recursive = 1;
+		options->max_depth = strtol(optarg, NULL, 10);
+		options->max_depth_valid = 1;
 	} else
 		return 0;
 	return 1;

@@ -19,6 +19,7 @@
 /git-bisect
 /git-bisect--helper
 /git-blame
+/git-blame-tree
 /git-branch
 /git-bundle
 /git-cat-file
