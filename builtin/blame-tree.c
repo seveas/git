@@ -2,6 +2,7 @@
 #include "blame-tree.h"
 #include "quote.h"
 #include "parse-options.h"
+#include "config.h"
 
 static void show_entry(const char *path, const struct commit *commit, void *d)
 {
